@@ -4,6 +4,7 @@ using GestioneBiblioteca.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace GestioneBiblioteca.Migrations
 {
     [DbContext(typeof(GestioneBibliotecaContext))]
-    partial class GestioneBibliotecaContextModelSnapshot : ModelSnapshot
+    [Migration("20250525191807_AggiuntaPrestitiUtenti2")]
+    partial class AggiuntaPrestitiUtenti2
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
