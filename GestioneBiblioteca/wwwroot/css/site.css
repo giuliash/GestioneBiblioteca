@@ -1,8 +1,87 @@
+/* Stile moderno per GestioneBiblioteca */
+
 body {
-    padding-top: 70px;
-    font-family: 'Segoe UI', sans-serif;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f4f7f9;
+    color: #333;
+    margin: 0;
+    padding: 0;
+}
+
+header, .navbar, .top-bar {
+    background-color: #0078d4;
+    color: white;
+    padding: 1rem 2rem;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.container {
+    max-width: 1200px;
+    margin: 2rem auto;
+    padding: 2rem;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+}
+
+h1, h2, h3 {
+    color: #0078d4;
+}
+
+a {
+    color: #0078d4;
+    text-decoration: none;
+}
+
+    a:hover {
+        text-decoration: underline;
+    }
+
+button, input[type="submit"], .btn {
+    background-color: #0078d4;
+    color: white;
+    border: none;
+    padding: 0.6rem 1.2rem;
+    font-size: 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+    button:hover, input[type="submit"]:hover, .btn:hover {
+        background-color: #005a9e;
+    }
+
+input[type="text"], input[type="password"], input[type="email"], select {
+    width: 100%;
+    padding: 0.6rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+    margin-bottom: 1rem;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 2rem;
+}
+
+th, td {
+    padding: 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
+
+th {
+    background-color: #e5f1fb;
+    color: #333;
 }
 
 footer {
-    background-color: #f8f9fa;
+    text-align: center;
+    padding: 1rem;
+    background-color: #f1f1f1;
+    margin-top: 3rem;
+    color: #666;
 }
