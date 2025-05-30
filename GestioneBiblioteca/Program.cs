@@ -4,17 +4,22 @@ using GestioneBiblioteca.Data;
 using GestioneBiblioteca.Models;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// ✅ Aggiunta per permettere connessioni da altri dispositivi
+builder.WebHost.UseUrls("http://0.0.0.0:5000");
+
 builder.Services.AddDbContext<GestioneBibliotecaContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("GestioneBibliotecaContext") ?? throw new InvalidOperationException("Connection string 'GestioneBibliotecaContext' not found.")));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("GestioneBibliotecaContext")
+        ?? throw new InvalidOperationException("Connection string 'GestioneBibliotecaContext' not found.")));
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 
 var app = builder.Build();
+
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
-
     SeedData.Initialize(services);
 }
 
@@ -22,7 +27,6 @@ using (var scope = app.Services.CreateScope())
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
 
