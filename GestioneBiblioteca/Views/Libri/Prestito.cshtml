@@ -1,36 +1,34 @@
-﻿@model GestioneBiblioteca.Models.Libro
+﻿@model GestioneBiblioteca.Models.Prestito
 
 @{
-    ViewData["Title"] = "Create";
+    ViewData["Title"] = "Presito";
 }
 
-<h1>Create</h1>
+<h1>Prestito</h1>
 
-<h4>Libro</h4>
+<h4>Prestito</h4>
 <hr />
 <div class="row">
     <div class="col-md-4">
         <form asp-action="Create">
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
             <div class="form-group">
-                <label asp-for="Titolo" class="control-label"></label>
-                <input asp-for="Titolo" class="form-control" />
-                <span asp-validation-for="Titolo" class="text-danger"></span>
+                <label asp-for="DataInizio" class="control-label"></label>
+                <input asp-for="DataInizio" class="form-control" />
+                <span asp-validation-for="DataInizio" class="text-danger"></span>
             </div>
             <div class="form-group">
-                <label asp-for="Autore" class="control-label"></label>
-                <input asp-for="Autore" class="form-control" />
-                <span asp-validation-for="Autore" class="text-danger"></span>
+                <label asp-for="DataFine" class="control-label"></label>
+                <input asp-for="DataFine" class="form-control" />
+                <span asp-validation-for="DataFine" class="text-danger"></span>
             </div>
             <div class="form-group">
-                <label asp-for="AnnoDiPubblicazione" class="control-label"></label>
-                <input asp-for="AnnoDiPubblicazione" class="form-control" />
-                <span asp-validation-for="AnnoDiPubblicazione" class="text-danger"></span>
+                <label asp-for="UserId" class="control-label"></label>
+                <select asp-for="UserId" class="form-control" asp-items="ViewBag.UserId"></select>
             </div>
             <div class="form-group">
-                <label asp-for="Genere" class="control-label"></label>
-                <input asp-for="Genere" class="form-control" />
-                <span asp-validation-for="Genere" class="text-danger"></span>
+                <label asp-for="LibroId" class="control-label"></label>
+                <select asp-for="LibroId" class="form-control" asp-items="ViewBag.LibroId"></select>
             </div>
             <div class="form-group">
                 <input type="submit" value="Create" class="btn btn-primary" />
@@ -44,5 +42,7 @@
 </div>
 
 @section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
 }
