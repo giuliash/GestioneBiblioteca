@@ -8,12 +8,24 @@ var builder = WebApplication.CreateBuilder(args);
 // ✅ Aggiunta per permettere connessioni da altri dispositivi
 builder.WebHost.UseUrls("http://0.0.0.0:5000");
 
+
 builder.Services.AddDbContext<GestioneBibliotecaContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("GestioneBibliotecaContext")
         ?? throw new InvalidOperationException("Connection string 'GestioneBibliotecaContext' not found.")));
 
+builder.Services.AddAntiforgery();
+
 // Add services to the container.
 builder.Services.AddControllersWithViews();
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("Accesso limitato", policy =>
+    {
+        policy.WithOrigins("il_mio_pc")
+        .AllowAnyHeader()
+        .AllowAnyMethod();
+    });
+});
 
 var app = builder.Build();
 
@@ -33,7 +45,11 @@ if (!app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 
+app.UseAntiforgery();
+
 app.UseRouting();
+
+app.UseCors("AccessoLimitato");
 
 app.UseAuthorization();
 
