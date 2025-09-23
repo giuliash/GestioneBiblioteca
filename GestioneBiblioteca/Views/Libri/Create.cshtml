@@ -10,29 +10,33 @@
 <hr />
 <div class="row">
     <div class="col-md-4">
-        <form asp-action="Create">
-            @Html.AntiForgeryToken()
+        <form asp-action="Create" method="post">
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
             <div class="form-group">
                 <label asp-for="Titolo" class="control-label"></label>
                 <input asp-for="Titolo" class="form-control" />
                 <span asp-validation-for="Titolo" class="text-danger"></span>
             </div>
+
             <div class="form-group">
                 <label asp-for="Autore" class="control-label"></label>
                 <input asp-for="Autore" class="form-control" />
                 <span asp-validation-for="Autore" class="text-danger"></span>
             </div>
+
             <div class="form-group">
                 <label asp-for="AnnoDiPubblicazione" class="control-label"></label>
                 <input asp-for="AnnoDiPubblicazione" class="form-control" />
                 <span asp-validation-for="AnnoDiPubblicazione" class="text-danger"></span>
             </div>
+
             <div class="form-group">
                 <label asp-for="Genere" class="control-label"></label>
                 <input asp-for="Genere" class="form-control" />
                 <span asp-validation-for="Genere" class="text-danger"></span>
             </div>
+
             <div class="form-group">
                 <input type="submit" value="Create" class="btn btn-primary" />
             </div>
@@ -45,5 +49,7 @@
 </div>
 
 @section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
 }
