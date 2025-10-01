@@ -1,0 +1,34 @@
+﻿@model GestioneBiblioteca.Models.Donazione
+
+<h2>Completa il pagamento</h2>
+
+<div id="card-element"></div>
+<button id="submit">Paga @Model.Importo €</button>
+
+<script src="https://js.stripe.com/v3/"></script>
+<script>
+    var stripe = Stripe("@ViewBag.PublishableKey");
+    var clientSecret = "@ViewBag.ClientSecret";
+
+    var elements = stripe.elements();
+    var card = elements.create('card');
+    card.mount('#card-element');
+
+    document.getElementById('submit').addEventListener('click', async () => {
+        const {paymentIntent, error} = await stripe.confirmCardPayment(clientSecret, {
+            payment_method: { card: card }
+        });
+
+        if(error){
+            alert(error.message);
+        } else if(paymentIntent.status === 'succeeded'){
+            fetch('/Donazioni/ConfermaPagamento', {
+                method: 'POST',
+                headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({ paymentIntentId: paymentIntent.id })
+            }).then(() => {
+                window.location.href = '/Donazioni/Success';
+            });
+        }
+    });
+</script>

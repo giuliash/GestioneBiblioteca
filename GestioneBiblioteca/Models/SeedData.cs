@@ -10,18 +10,15 @@ public static class SeedData
 {
     public static void Initialize(IServiceProvider serviceProvider)
     {
-        using (var context = new GestioneBibliotecaContext(
-            serviceProvider.GetRequiredService<
-                DbContextOptions<GestioneBibliotecaContext>>()))
+        using (var context = serviceProvider.GetRequiredService<GestioneBibliotecaContext>())
         {
-            // Look for any movies.
+            // Look for any books.
             if (context.Libro.Any())
             {
                 return;   // DB has been seeded
             }
+
             context.Libro.AddRange(
-
-
                 new Libro
                 {
                     Titolo = "Il nome della Rosa",
@@ -237,4 +234,3 @@ public static class SeedData
         }
     }
 }
-
