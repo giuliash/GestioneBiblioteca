@@ -7,6 +7,7 @@ using Microsoft.Extensions.Options;
 using System.Collections.Generic;
 using System.Linq;
 using TuoProgetto.Data;
+using Microsoft.AspNetCore.Http;
 
 namespace GestioneBiblioteca.Controllers
 {
@@ -24,6 +25,10 @@ namespace GestioneBiblioteca.Controllers
         // GET: Donazioni/Create
         public IActionResult Create()
         {
+            // Salva valori in sessione (esempio)
+            HttpContext.Session.SetString(SessionKeys.SessionKeyName, "Mario Rossi");
+            HttpContext.Session.SetInt32(SessionKeys.SessionKeyAge, 35);
+
             return View();
         }
 

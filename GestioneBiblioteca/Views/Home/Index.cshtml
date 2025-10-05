@@ -1,6 +1,44 @@
 ﻿@{
-    ViewData["Title"] = "Home";
+    ViewData["Title"] = "Home Page";
 }
+
+<!-- ========== TEST SESSIONE - AGGIUNGI QUESTO BLOCCO ========== -->
+<div class="container mt-4">
+    <div class="card border-primary">
+        <div class="card-header bg-primary text-white">
+            <h5>🧪 Test Gestione Sessione</h5>
+        </div>
+        <div class="card-body">
+            @if (ViewBag.HasSession == true)
+            {
+                <div class="alert alert-success">
+                    @ViewBag.SessionMessage
+                </div>
+                <p><strong>Nome:</strong> @ViewBag.UserName</p>
+                <p><strong>Età:</strong> @ViewBag.UserAge anni</p>
+            }
+            else
+            {
+                <div class="alert alert-warning">
+                    @ViewBag.SessionMessage
+                </div>
+            }
+
+            <hr />
+
+            <div class="btn-group" role="group">
+                <a href="/Donazioni/Create" class="btn btn-success">
+                    📝 Imposta Sessione
+                </a>
+                <a href="/" class="btn btn-secondary">
+                    🔄 Ricarica Pagina
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- ========== FINE TEST SESSIONE ========== -->
+<!-- Il tuo contenuto esistente della Home continua sotto -->
 
 <h1 class="display-4">Benvenuti alla Biblioteca Comunale di Cuneo</h1>
 
