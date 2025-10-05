@@ -1,11 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using GestioneBiblioteca.Data;    // DbContext
-using GestioneBiblioteca.Models;  // Donazione, StripeSettings
-using Stripe;                     // PaymentIntentService, StripeConfiguration
-using Stripe.Checkout;            // opzionale se usi CheckoutSession
-using Microsoft.Extensions.Options;
-using System.Collections.Generic;
-using System.Linq;
+using GestioneBiblioteca.Models;
+using Stripe;
 using TuoProgetto.Data;
 
 namespace GestioneBiblioteca.Controllers
@@ -33,52 +28,79 @@ namespace GestioneBiblioteca.Controllers
         public IActionResult Create(Donazione donazione)
         {
             if (!ModelState.IsValid)
-                return View(donazione);
-
-            // Salva donazione preliminare nel DB
-            _context.Donazioni.Add(donazione);
-            _context.SaveChanges();
-
-            // Crea PaymentIntent Stripe
-            var options = new PaymentIntentCreateOptions
             {
-                Amount = (long)(donazione.Importo * 100), // importo in centesimi
-                Currency = "eur",
-                Metadata = new Dictionary<string, string>
+                // Mostra gli errori per debug
+                var errors = ModelState.Values.SelectMany(v => v.Errors);
+                foreach (var error in errors)
                 {
-                    {"DonazioneId", donazione.Id.ToString()},
-                    {"Nome", donazione.Nome}
+                    ModelState.AddModelError("", error.ErrorMessage);
                 }
-            };
-            var service = new PaymentIntentService();
-            var paymentIntent = service.Create(options);
+                return View(donazione);
+            }
 
-            donazione.PaymentIntentId = paymentIntent.Id;
-            _context.SaveChanges();
+            try
+            {
+                // Salva donazione preliminare nel DB
+                donazione.DataDonazione = DateTime.Now;
+                donazione.PagamentoRiuscito = false;
+                _context.Donazioni.Add(donazione);
+                _context.SaveChanges();
 
-            // Passa i dati alla view Checkout
-            ViewBag.ClientSecret = paymentIntent.ClientSecret;
-            ViewBag.PublishableKey = _config["Stripe:PublishableKey"];
+                // Crea PaymentIntent Stripe
+                var options = new PaymentIntentCreateOptions
+                {
+                    Amount = (long)(donazione.Importo * 100), // importo in centesimi
+                    Currency = "eur",
+                    Metadata = new Dictionary<string, string>
+                    {
+                        {"DonazioneId", donazione.Id.ToString()},
+                        {"Nome", donazione.Nome}
+                    }
+                };
 
-            return View("Checkout", donazione);
+                var service = new PaymentIntentService();
+                var paymentIntent = service.Create(options);
+
+                donazione.PaymentIntentId = paymentIntent.Id;
+                _context.SaveChanges();
+
+                // Passa i dati alla view Checkout
+                ViewBag.ClientSecret = paymentIntent.ClientSecret;
+                ViewBag.PublishableKey = _config["Stripe:PublishableKey"];
+
+                return View("Checkout", donazione);
+            }
+            catch (Exception ex)
+            {
+                ModelState.AddModelError("", $"Errore durante la creazione della donazione: {ex.Message}");
+                return View(donazione);
+            }
         }
 
         // POST: Conferma pagamento
         [HttpPost]
-        public IActionResult ConfermaPagamento([FromBody] dynamic data)
+        public IActionResult ConfermaPagamento([FromBody] PaymentData data)
         {
-            string paymentIntentId = data.paymentIntentId;
-            var service = new PaymentIntentService();
-            var intent = service.Get(paymentIntentId);
-
-            var donazione = _context.Donazioni.FirstOrDefault(d => d.PaymentIntentId == paymentIntentId);
-            if (donazione != null && intent.Status == "succeeded")
+            try
             {
-                donazione.PagamentoRiuscito = true;
-                _context.SaveChanges();
-            }
+                var service = new PaymentIntentService();
+                var intent = service.Get(data.PaymentIntentId);
 
-            return Ok();
+                var donazione = _context.Donazioni.FirstOrDefault(d => d.PaymentIntentId == data.PaymentIntentId);
+
+                if (donazione != null && intent.Status == "succeeded")
+                {
+                    donazione.PagamentoRiuscito = true;
+                    _context.SaveChanges();
+                    return Ok(new { success = true });
+                }
+
+                return BadRequest(new { success = false, message = "Pagamento non riuscito" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
+            }
         }
 
         // GET: Success
@@ -86,5 +108,10 @@ namespace GestioneBiblioteca.Controllers
         {
             return View();
         }
+    }
+
+    public class PaymentData
+    {
+        public string PaymentIntentId { get; set; }
     }
 }
