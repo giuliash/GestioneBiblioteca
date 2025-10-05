@@ -1,0 +1,137 @@
+﻿@{
+    ViewData["Title"] = "Carica File";
+}
+
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h2 class="mb-0">
+                        <i class="bi bi-cloud-upload"></i> Carica File
+                    </h2>
+                </div>
+                <div class="card-body">
+
+                    <!-- Messaggi di Successo/Errore -->
+                    @if (ViewBag.Message != null)
+                    {
+                        <div class="alert alert-@ViewBag.MessageType alert-dismissible fade show" role="alert">
+                            <strong>@ViewBag.Message</strong>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    }
+
+                    <!-- Informazioni sui Requisiti -->
+                    <div class="alert alert-info">
+                        <h5 class="alert-heading">📋 Requisiti File:</h5>
+                        <ul class="mb-0">
+                            <li><strong>Estensioni consentite:</strong> .jpeg, .jpg, .gif, .pdf</li>
+                            <li><strong>Dimensione massima:</strong> 3 MB per file</li>
+                            <li><strong>File multipli:</strong> Puoi caricare più file contemporaneamente</li>
+                        </ul>
+                    </div>
+
+                    <!-- Form di Upload -->
+                    <form asp-action="UploadFile" method="post" enctype="multipart/form-data">
+                        @Html.AntiForgeryToken()
+
+                        <div class="mb-3">
+                            <label for="files" class="form-label">Seleziona i file da caricare:</label>
+                            <input type="file"
+                                   class="form-control"
+                                   id="files"
+                                   name="files"
+                                   multiple
+                                   accept=".jpeg,.jpg,.gif,.pdf"
+                                   required>
+                            <div class="form-text">
+                                Puoi selezionare più file tenendo premuto Ctrl (Windows) o Cmd (Mac)
+                            </div>
+                        </div>
+
+                        <!-- Anteprima file selezionati -->
+                        <div id="fileList" class="mb-3"></div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="bi bi-upload"></i> Carica File
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- Risultati Upload -->
+                    @if (ViewBag.UploadedCount != null && ViewBag.UploadedCount > 0)
+                    {
+                        <hr class="my-4">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <h5 class="card-title text-success">
+                                    ✅ Riepilogo Caricamento
+                                </h5>
+                                <p class="card-text">
+                                    <strong>File caricati:</strong> @ViewBag.UploadedCount<br>
+                                    <strong>Dimensione totale:</strong> @ViewBag.TotalSize
+                                </p>
+
+                                @if (ViewBag.UploadedFiles != null)
+                                {
+                                    <h6>File caricati con successo:</h6>
+                                    <ul class="list-group">
+                                        @foreach (var fileName in ViewBag.UploadedFiles)
+                                        {
+                                            <li class="list-group-item">
+                                                <i class="bi bi-file-earmark-check text-success"></i> @fileName
+                                            </li>
+                                        }
+                                    </ul>
+                                }
+                            </div>
+                        </div>
+                    }
+
+                    <!-- Errori -->
+                    @if (ViewBag.Errors != null && ((List<string>)ViewBag.Errors).Count > 0)
+                    {
+                        <hr class="my-4">
+                        <div class="alert alert-danger">
+                            <h5 class="alert-heading">⚠️ Errori durante il caricamento:</h5>
+                            <ul class="mb-0">
+                                @foreach (var error in (List<string>)ViewBag.Errors)
+                                {
+                                    <li>@error</li>
+                                }
+                            </ul>
+                        </div>
+                    }
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Mostra anteprima file selezionati
+        document.getElementById('files').addEventListener('change', function(e) {
+            const fileList = document.getElementById('fileList');
+            const files = e.target.files;
+
+            if (files.length === 0) {
+                fileList.innerHTML = '';
+                return;
+            }
+
+            let html = '<div class="alert alert-secondary"><strong>File selezionati:</strong><ul class="mb-0">';
+
+            for (let i = 0; i < files.length; i++) {
+                const size = (files[i].size / 1024 / 1024).toFixed(2);
+                html += `<li>${files[i].name} (${size} MB)</li>`;
+            }
+
+            html += '</ul></div>';
+            fileList.innerHTML = html;
+        });
+    </script>
+}
