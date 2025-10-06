@@ -12,34 +12,43 @@ var builder = WebApplication.CreateBuilder(args);
 StripeConfiguration.ApiKey = builder.Configuration["Stripe:SecretKey"];
 
 // ======================
-// DbContext - ENTRAMBI I CONTEXT REGISTRATI
+// DbContext - Due database separati
 // ======================
 builder.Services.AddDbContext<GestioneBibliotecaContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")
-        ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.")));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("GestioneBibliotecaContext")
+        ?? throw new InvalidOperationException("Connection string 'GestioneBibliotecaContext' not found.")));
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")
         ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.")));
 
 // ======================
-// Antiforgery
+// Session per totale donazioni
+// ======================
+builder.Services.AddDistributedMemoryCache();
+builder.Services.AddSession(options =>
+{
+    options.Cookie.Name = ".GestioneBiblioteca.Session";
+    options.IdleTimeout = TimeSpan.FromMinutes(30);
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+});
+
+// ======================
+// MVC + Razor Pages
 // ======================
 builder.Services.AddAntiforgery();
-
-// ======================
-// MVC + Views
-// ======================
 builder.Services.AddControllersWithViews();
+builder.Services.AddRazorPages();
 
 // ======================
-// CORS (opzionale)
+// CORS
 // ======================
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AccessoLimitato", policy =>
     {
-        policy.WithOrigins("http://localhost:5000") // puoi sostituire con IP o dominio reale
+        policy.WithOrigins("http://localhost:5000")
               .AllowAnyHeader()
               .AllowAnyMethod();
     });
@@ -48,7 +57,7 @@ builder.Services.AddCors(options =>
 var app = builder.Build();
 
 // ======================
-// Seed DB - CORRETTO per gestire eccezioni
+// Seed DB Biblioteca
 // ======================
 using (var scope = app.Services.CreateScope())
 {
@@ -76,17 +85,15 @@ if (!app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 
-// Antiforgery middleware
 app.UseRouting();
+app.UseSession();
 app.UseCors("AccessoLimitato");
 app.UseAuthorization();
 
-// ======================
-// Route default
-// ======================
-// Imposta Donazioni/Create come pagina di default
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Donazioni}/{action=Create}/{id?}");
+
+app.MapRazorPages();
 
 app.Run();

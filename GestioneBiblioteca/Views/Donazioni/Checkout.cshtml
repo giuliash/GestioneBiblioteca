@@ -1,34 +1,134 @@
 ﻿@model GestioneBiblioteca.Models.Donazione
 
-<h2>Completa il pagamento</h2>
+@{
+    ViewData["Title"] = "Completa il pagamento";
+}
 
-<div id="card-element"></div>
-<button id="submit">Paga @Model.Importo €</button>
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white">
+                    <h2 class="mb-0">Completa il pagamento</h2>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info mb-4">
+                        <strong>Importo da pagare:</strong> €@Model.Importo
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Dati della carta di credito</label>
+                        <div id="card-element" class="form-control" style="height: 45px; padding-top: 12px;"></div>
+                        <div id="card-errors" class="text-danger mt-2"></div>
+                    </div>
+
+                    <button id="submit" class="btn btn-success w-100 btn-lg">
+                        <span id="button-text">Paga €@Model.Importo</span>
+                        <span id="spinner" class="spinner-border spinner-border-sm d-none ms-2" role="status"></span>
+                    </button>
+
+                    <div class="text-center mt-3">
+                        <small class="text-muted">
+                            <i class="bi bi-shield-check"></i> Pagamento sicuro con Stripe
+                        </small>
+                    </div>
+
+                    <div class="alert alert-warning mt-3">
+                        <small><strong>Modalità Test:</strong> Usa la carta <code>4242 4242 4242 4242</code> con qualsiasi data futura e CVC.</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
 <script src="https://js.stripe.com/v3/"></script>
 <script>
     var stripe = Stripe("@ViewBag.PublishableKey");
     var clientSecret = "@ViewBag.ClientSecret";
-
     var elements = stripe.elements();
-    var card = elements.create('card');
-    card.mount('#card-element');
 
-    document.getElementById('submit').addEventListener('click', async () => {
-        const {paymentIntent, error} = await stripe.confirmCardPayment(clientSecret, {
-            payment_method: { card: card }
-        });
+    var cardElement = elements.create('card', {
+        style: {
+            base: {
+                fontSize: '16px',
+                color: '#32325d',
+                fontFamily: '"Helvetica Neue", Helvetica, sans-serif',
+                '::placeholder': {
+                    color: '#aab7c4'
+                }
+            },
+            invalid: {
+                color: '#dc3545',
+                iconColor: '#dc3545'
+            }
+        }
+    });
 
-        if(error){
-            alert(error.message);
-        } else if(paymentIntent.status === 'succeeded'){
-            fetch('/Donazioni/ConfermaPagamento', {
-                method: 'POST',
-                headers: {'Content-Type':'application/json'},
-                body: JSON.stringify({ paymentIntentId: paymentIntent.id })
-            }).then(() => {
-                window.location.href = '/Donazioni/Success';
+    cardElement.mount('#card-element');
+
+    // Mostra errori in tempo reale
+    cardElement.on('change', function (event) {
+        var displayError = document.getElementById('card-errors');
+        if (event.error) {
+            displayError.textContent = event.error.message;
+        } else {
+            displayError.textContent = '';
+        }
+    });
+
+    // Gestione click pulsante
+    document.getElementById('submit').addEventListener('click', async function () {
+        var submitButton = document.getElementById('submit');
+        var buttonText = document.getElementById('button-text');
+        var spinner = document.getElementById('spinner');
+        var errorDiv = document.getElementById('card-errors');
+
+        // Disabilita pulsante e mostra spinner
+        submitButton.disabled = true;
+        buttonText.textContent = 'Elaborazione...';
+        spinner.classList.remove('d-none');
+        errorDiv.textContent = '';
+
+        try {
+            const { paymentIntent, error } = await stripe.confirmCardPayment(clientSecret, {
+                payment_method: {
+                    card: cardElement
+                }
             });
+
+            if (error) {
+                // Mostra errore
+                errorDiv.textContent = error.message;
+                submitButton.disabled = false;
+                buttonText.textContent = 'Paga €@Model.Importo';
+                spinner.classList.add('d-none');
+            } else if (paymentIntent.status === 'succeeded') {
+                // Conferma pagamento al server
+                const response = await fetch('/Donazioni/ConfermaPagamento', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        paymentIntentId: paymentIntent.id
+                    })
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    window.location.href = '/Donazioni/Success';
+                } else {
+                    throw new Error(result.message || 'Errore nella conferma del pagamento');
+                }
+            }
+        } catch (err) {
+            console.error('Errore:', err);
+            errorDiv.textContent = 'Si è verificato un errore. Riprova.';
+            submitButton.disabled = false;
+            buttonText.textContent = 'Paga €@Model.Importo';
+            spinner.classList.add('d-none');
         }
     });
 </script>
