@@ -6,37 +6,44 @@ using GestioneBiblioteca.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
-
+// ======================
+// Configurazione Stripe
+// ======================
 StripeConfiguration.ApiKey = builder.Configuration["Stripe:SecretKey"];
 
-
+// ======================
+// DbContext - Due database separati
+// ======================
 builder.Services.AddDbContext<GestioneBibliotecaContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")
-        ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.")));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("GestioneBibliotecaContext")
+        ?? throw new InvalidOperationException("Connection string 'GestioneBibliotecaContext' not found.")));
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")
         ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.")));
 
-
+// ======================
+// Session per totale donazioni
+// ======================
 builder.Services.AddDistributedMemoryCache();
-
-
 builder.Services.AddSession(options =>
 {
     options.Cookie.Name = ".GestioneBiblioteca.Session";
-    options.IdleTimeout = TimeSpan.FromMinutes(30); // Timeout di 30 minuti
-    options.Cookie.HttpOnly = true; // Sicurezza: previene accesso da JavaScript
-    options.Cookie.IsEssential = true; // Necessario per GDPR
+    options.IdleTimeout = TimeSpan.FromMinutes(30);
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
 });
 
-
+// ======================
+// MVC + Razor Pages
+// ======================
 builder.Services.AddAntiforgery();
-
-
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
 
+// ======================
+// CORS
+// ======================
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AccessoLimitato", policy =>
@@ -49,7 +56,9 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-
+// ======================
+// Seed DB Biblioteca
+// ======================
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
@@ -64,7 +73,9 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
-
+// ======================
+// Pipeline HTTP
+// ======================
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
@@ -74,20 +85,15 @@ if (!app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 
-
-app.UseRouting();              // 1. PRIMA Routing
-
-app.UseSession();              // 2. POI Session (DOPO UseRouting)
-
+app.UseRouting();
+app.UseSession();
 app.UseCors("AccessoLimitato");
-
-app.UseAuthorization();        // 3. INFINE Authorization (DOPO UseSession)
-
+app.UseAuthorization();
 
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Donazioni}/{action=Create}/{id?}");
 
-app.MapRazorPages(); // Aggiunto per supportare Razor Pages
+app.MapRazorPages();
 
 app.Run();

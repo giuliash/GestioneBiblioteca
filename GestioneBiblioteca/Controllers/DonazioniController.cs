@@ -1,13 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using GestioneBiblioteca.Data;    // DbContext
-using GestioneBiblioteca.Models;  // Donazione, StripeSettings
-using Stripe;                     // PaymentIntentService, StripeConfiguration
-using Stripe.Checkout;            // opzionale se usi CheckoutSession
-using Microsoft.Extensions.Options;
-using System.Collections.Generic;
-using System.Linq;
+using GestioneBiblioteca.Models;
+using Stripe;
 using TuoProgetto.Data;
-using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 
 namespace GestioneBiblioteca.Controllers
 {
@@ -25,9 +20,13 @@ namespace GestioneBiblioteca.Controllers
         // GET: Donazioni/Create
         public IActionResult Create()
         {
-            // Salva valori in sessione (esempio)
-            HttpContext.Session.SetString(SessionKeys.SessionKeyName, "Mario Rossi");
-            HttpContext.Session.SetInt32(SessionKeys.SessionKeyAge, 35);
+            // Calcola il totale delle donazioni riuscite
+            var totaleDonazioni = _context.Donazioni
+                .Where(d => d.PagamentoRiuscito)
+                .Sum(d => (decimal?)d.Importo) ?? 0;
+
+            // Salva in ViewBag per mostrarlo in tutte le pagine
+            ViewBag.TotaleDonazioni = totaleDonazioni;
 
             return View();
         }
@@ -38,58 +37,131 @@ namespace GestioneBiblioteca.Controllers
         public IActionResult Create(Donazione donazione)
         {
             if (!ModelState.IsValid)
-                return View(donazione);
-
-            // Salva donazione preliminare nel DB
-            _context.Donazioni.Add(donazione);
-            _context.SaveChanges();
-
-            // Crea PaymentIntent Stripe
-            var options = new PaymentIntentCreateOptions
             {
-                Amount = (long)(donazione.Importo * 100), // importo in centesimi
-                Currency = "eur",
-                Metadata = new Dictionary<string, string>
+                var errors = ModelState.Values.SelectMany(v => v.Errors);
+                foreach (var error in errors)
                 {
-                    {"DonazioneId", donazione.Id.ToString()},
-                    {"Nome", donazione.Nome}
+                    ModelState.AddModelError("", error.ErrorMessage);
                 }
-            };
-            var service = new PaymentIntentService();
-            var paymentIntent = service.Create(options);
+                return View(donazione);
+            }
 
-            donazione.PaymentIntentId = paymentIntent.Id;
-            _context.SaveChanges();
+            try
+            {
+                // Verifica connessione database
+                if (!_context.Database.CanConnect())
+                {
+                    ModelState.AddModelError("", "Impossibile connettersi al database");
+                    return View(donazione);
+                }
 
-            // Passa i dati alla view Checkout
-            ViewBag.ClientSecret = paymentIntent.ClientSecret;
-            ViewBag.PublishableKey = _config["Stripe:PublishableKey"];
+                // Salva donazione preliminare nel DB
+                donazione.DataDonazione = DateTime.Now;
+                donazione.PagamentoRiuscito = false;
+                _context.Donazioni.Add(donazione);
+                _context.SaveChanges();
 
-            return View("Checkout", donazione);
+                // Verifica chiave Stripe
+                var stripeKey = _config["Stripe:SecretKey"];
+                if (string.IsNullOrEmpty(stripeKey))
+                {
+                    ModelState.AddModelError("", "Chiave Stripe non configurata");
+                    return View(donazione);
+                }
+
+                // Crea PaymentIntent Stripe
+                var options = new PaymentIntentCreateOptions
+                {
+                    Amount = (long)(donazione.Importo * 100), // importo in centesimi
+                    Currency = "eur",
+                    Metadata = new Dictionary<string, string>
+                    {
+                        {"DonazioneId", donazione.Id.ToString()},
+                        {"Nome", donazione.Nome}
+                    }
+                };
+
+                var service = new PaymentIntentService();
+                var paymentIntent = service.Create(options);
+
+                donazione.PaymentIntentId = paymentIntent.Id;
+                _context.SaveChanges();
+
+                // Passa i dati alla view Checkout
+                ViewBag.ClientSecret = paymentIntent.ClientSecret;
+                ViewBag.PublishableKey = _config["Stripe:PublishableKey"];
+
+                return View("Checkout", donazione);
+            }
+            catch (Exception ex)
+            {
+                ModelState.AddModelError("", $"Errore: {ex.Message}");
+                if (ex.InnerException != null)
+                {
+                    ModelState.AddModelError("", $"Dettagli: {ex.InnerException.Message}");
+                }
+                return View(donazione);
+            }
         }
 
         // POST: Conferma pagamento
         [HttpPost]
-        public IActionResult ConfermaPagamento([FromBody] dynamic data)
+        public IActionResult ConfermaPagamento([FromBody] PaymentData data)
         {
-            string paymentIntentId = data.paymentIntentId;
-            var service = new PaymentIntentService();
-            var intent = service.Get(paymentIntentId);
-
-            var donazione = _context.Donazioni.FirstOrDefault(d => d.PaymentIntentId == paymentIntentId);
-            if (donazione != null && intent.Status == "succeeded")
+            try
             {
-                donazione.PagamentoRiuscito = true;
-                _context.SaveChanges();
-            }
+                if (string.IsNullOrEmpty(data?.PaymentIntentId))
+                {
+                    return BadRequest(new { success = false, message = "PaymentIntentId mancante" });
+                }
 
-            return Ok();
+                var service = new PaymentIntentService();
+                var intent = service.Get(data.PaymentIntentId);
+
+                var donazione = _context.Donazioni.FirstOrDefault(d => d.PaymentIntentId == data.PaymentIntentId);
+
+                if (donazione != null && intent.Status == "succeeded")
+                {
+                    donazione.PagamentoRiuscito = true;
+                    _context.SaveChanges();
+                    return Ok(new { success = true });
+                }
+
+                return BadRequest(new { success = false, message = "Pagamento non riuscito" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
+            }
         }
 
         // GET: Success
         public IActionResult Success()
         {
+            // Calcola il totale delle donazioni per mostrarlo nella pagina di successo
+            var totaleDonazioni = _context.Donazioni
+                .Where(d => d.PagamentoRiuscito)
+                .Sum(d => (decimal?)d.Importo) ?? 0;
+
+            ViewBag.TotaleDonazioni = totaleDonazioni;
+
             return View();
         }
+
+        // API per ottenere il totale donazioni (per mostrarlo in navbar)
+        [HttpGet]
+        public IActionResult GetTotaleDonazioni()
+        {
+            var totale = _context.Donazioni
+                .Where(d => d.PagamentoRiuscito)
+                .Sum(d => (decimal?)d.Importo) ?? 0;
+
+            return Json(new { totale = totale });
+        }
+    }
+
+    public class PaymentData
+    {
+        public string PaymentIntentId { get; set; }
     }
 }
